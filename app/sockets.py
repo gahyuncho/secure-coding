@@ -1,8 +1,22 @@
+import time
 from flask_login import current_user
 from flask_socketio import join_room, emit, disconnect
 
 from app.extensions import socketio, db
 from app.models import Message, User
+
+# 유저별 마지막 메시지 전송 시각 (in-memory). 단일 프로세스 배포 기준 간단한 도배 방지용.
+_last_message_at = {}
+_MIN_INTERVAL_SECONDS = 0.5
+
+
+def _rate_limited(user_id: int) -> bool:
+    now = time.monotonic()
+    last = _last_message_at.get(user_id, 0)
+    if now - last < _MIN_INTERVAL_SECONDS:
+        return True
+    _last_message_at[user_id] = now
+    return False
 
 
 def _room_name(user_a_id: int, user_b_id: int) -> str:
@@ -22,6 +36,8 @@ def handle_connect():
 @socketio.on("send_global_message")
 def handle_global_message(data):
     if not current_user.is_authenticated or current_user.is_suspended:
+        return
+    if _rate_limited(current_user.id):
         return
     content = (data or {}).get("content", "").strip()
     if not content or len(content) > 1000:
@@ -52,6 +68,8 @@ def handle_join_dm(data):
 @socketio.on("send_dm")
 def handle_send_dm(data):
     if not current_user.is_authenticated or current_user.is_suspended:
+        return
+    if _rate_limited(current_user.id):
         return
     peer_username = (data or {}).get("peer_username", "")
     content = (data or {}).get("content", "").strip()

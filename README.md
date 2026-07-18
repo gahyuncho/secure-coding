@@ -35,8 +35,8 @@ cp .env.example .env
 # .env 파일의 SECRET_KEY를 아래 명령어로 생성한 무작위 값으로 반드시 교체할 것
 python3 -c "import secrets; print(secrets.token_hex(32))"
 
-# 6. (최초 1회) 관리자 계정 생성
-python seed_admin.py admin <admin-password>
+# 6. (최초 1회) 관리자 계정 생성 (아래는 예시 값입니다. 원하는 아이디/비밀번호로 바꿔서 실행하세요)
+python seed_admin.py admin StrongPassword123!
 
 # 7. 서버 실행
 python run.py
@@ -75,7 +75,7 @@ secure-coding/
 
 | 항목 | 조치 |
 |---|---|
-| 비밀번호 저장 | werkzeug `generate_password_hash` (pbkdf2:sha256), 평문 저장 금지 |
+| 비밀번호 저장 | werkzeug `generate_password_hash` 사용 (설치된 버전 기본 알고리즘 적용), 평문 저장 금지 |
 | 인증 | Flask-Login 세션 기반, HttpOnly/SameSite 쿠키, `session_protection="strong"` |
 | 인가(IDOR) | 상품 수정/삭제 시 소유자 검증, 관리자 라우트는 `admin_required` 데코레이터로 role 체크 |
 | SQL Injection | 전 구간 SQLAlchemy ORM 사용, raw query 미사용, 검색어도 파라미터 바인딩 |
@@ -88,20 +88,29 @@ secure-coding/
 | 정보 노출 | 로그인 실패 시 아이디 존재 여부를 구분하지 않는 동일 에러 메시지 |
 | 실시간 채팅 인증 | 미인증 소켓 연결은 즉시 종료 (`disconnect()`) |
 | 채팅 도배 방지 | 유저별 최소 전송 간격(0.5초) 제한 |
-| 계정 탈취 대응 | 비밀번호 변경 시 현재 비밀번호 재확인 필수 |
+| 계정 탈취 대응 | 비밀번호 변경 시 현재 비밀번호 재확인 필수, 새 비밀번호도 회원가입과 동일하게 최소 8자 검증 |
 | 이미지 URL XSS 방지 | `javascript:`/`data:` 등 위험 스킴 차단, http/https만 허용 |
 | 회원가입 경쟁 조건 | 동시 가입 요청으로 인한 DB unique 제약 위반(IntegrityError)을 안전하게 처리 |
 | SECRET_KEY 관리 | 소스코드에 고정 기본값을 두지 않고, 미설정 시 프로세스별 랜덤 키 생성 + 경고 (public 저장소 노출 대응) |
+| 판매완료 상품 보호 | 판매완료(sold) 상품은 판매자가 수정할 수 없고, 관리자 차단 토글도 sold 상태는 건드리지 않도록 제외 |
+| 로그아웃 상태 변경 | GET이 아닌 POST + CSRF 토큰 필요하도록 변경 (제3자 사이트에서 강제 로그아웃 유도 방지) |
 
 > 상세 보안 점검 항목 및 발견/수정 내역은 별도 보고서(PDF)에 기술.
 
 ## 테스트
 
-기능별 시나리오(회원가입→로그인→상품등록→검색→구매→신고→송금→관리자 관리 등)를 Flask test client로 자동화 테스트하여 검증. 상세 체크리스트는 보고서 5장 참고.
+`tests/` 디렉토리에 pytest 기반 자동화 테스트 스위트가 있습니다. 실행 방법:
+
+```bash
+pip install pytest  # requirements.txt에 포함되어 있음
+python -m pytest -q
+```
+
+회원가입 중복 방지, IDOR, XSS 이미지 URL 차단, 잔액 초과 송금 거부, 판매완료 상품 재구매 거부, 관리자 권한 검증, CSRF 검증, 중복 신고 방지 등 8개 시나리오를 검증합니다. 상세 내용은 보고서 5장 참고.
 
 ## 알려진 한계 (배포 시 반영 필요)
 
 - 로컬 개발 환경 기준으로 작성되어 `SESSION_COOKIE_SECURE=false` 상태 — 실제 배포 시 HTTPS 환경에서 `true`로 변경 필요
-- SocketIO `cors_allowed_origins`가 현재 빈 리스트(모든 크로스오리진 차단) — 운영 도메인이 정해지면 해당 도메인으로 명시적 설정 필요
+- SocketIO는 `cors_allowed_origins`를 지정하지 않아 기본값(동일 출처만 허용)으로 동작 — 운영 도메인이 여러 개(예: 서브도메인)라면 명시적으로 설정 필요. **주의**: `cors_allowed_origins=[]`로 설정하면 반대로 CORS 검사 자체가 비활성화되어 모든 출처가 허용되므로 절대 사용하지 말 것 (초기 개발 중 이 실수를 했다가 발견하여 수정한 이력이 있음 — 보고서 6장 참고)
 - Rate limit이 IP 기준이라 분산된 다중 IP 공격에는 완전한 방어가 아님 (계정 단위 잠금 미구현)
 - 비밀번호 정책은 길이(8자 이상)만 검증, 복잡도 요구사항 없음

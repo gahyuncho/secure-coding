@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, abort
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
 from app.forms import RegisterForm, LoginForm, MyPageForm
@@ -24,7 +25,13 @@ def register():
         user = User(username=form.username.data, balance=current_app.config["STARTING_BALANCE"])
         user.set_password(form.password.data)
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # 사전 중복 체크와 insert 사이의 race condition 방어 (DB unique 제약이 최종 방어선)
+            db.session.rollback()
+            flash("이미 사용 중인 아이디입니다.", "error")
+            return render_template("register.html", form=form)
         flash("회원가입이 완료되었습니다. 로그인해주세요.", "success")
         return redirect(url_for("auth.login"))
 
@@ -56,7 +63,7 @@ def login():
     return render_template("login.html", form=form)
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     logout_user()

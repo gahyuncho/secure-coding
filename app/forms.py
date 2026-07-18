@@ -28,7 +28,10 @@ class LoginForm(FlaskForm):
 class MyPageForm(FlaskForm):
     bio = TextAreaField("소개글", validators=[Length(max=500)])
     current_password = PasswordField("현재 비밀번호 (비밀번호 변경 시에만 입력)", validators=[Length(min=0, max=128)])
-    new_password = PasswordField("새 비밀번호 (변경 시에만 입력)", validators=[Length(min=0, max=128)])
+    new_password = PasswordField(
+        "새 비밀번호 (변경 시에만 입력, 최소 8자)",
+        validators=[Optional(), Length(min=8, max=128)],
+    )
     submit = SubmitField("저장")
 
 

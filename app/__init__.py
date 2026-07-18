@@ -15,7 +15,10 @@ def create_app(config_class=Config, config_overrides=None):
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
-    socketio.init_app(app, cors_allowed_origins=[])  # 운영시 허용 origin 명시 필요
+    socketio.init_app(app)  # cors_allowed_origins 미지정 시 기본적으로 동일 출처만 허용됨.
+    # 주의: cors_allowed_origins=[] 는 "모든 크로스오리진 차단"이 아니라 CORS 검사 자체를 비활성화하는
+    # 설정이라 오히려 모든 출처를 허용하게 되므로 사용하지 말 것. 운영 배포 시 특정 도메인만 허용하려면
+    # cors_allowed_origins=["https://your-domain.com"] 처럼 명시적으로 지정해야 함.
     limiter.init_app(app)
 
     from app.models import User

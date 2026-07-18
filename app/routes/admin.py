@@ -55,6 +55,19 @@ def charge_balance(user_id):
     return redirect(url_for("admin.dashboard"))
 
 
+@admin_bp.route("/reports/<int:report_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_report(report_id):
+    report = db.session.get(Report, report_id)
+    if report is None:
+        abort(404)
+    db.session.delete(report)
+    db.session.commit()
+    flash("신고 내역이 삭제(처리완료)되었습니다.", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
 @admin_bp.route("/products/<int:product_id>/toggle-block", methods=["POST"])
 @login_required
 @admin_required
@@ -62,6 +75,11 @@ def toggle_block_product(product_id):
     product = db.session.get(Product, product_id)
     if product is None:
         abort(404)
+    # 이미 판매완료(sold)된 상품은 차단/차단해제 토글 대상에서 제외 — 구매자가 이미 존재하는
+    # 상품을 다시 active로 되돌리면 판매 완료 후 재판매되는 비즈니스 로직 결함이 발생하므로 차단.
+    if product.status == "sold":
+        flash("판매완료된 상품은 상태를 변경할 수 없습니다.", "error")
+        return redirect(url_for("admin.dashboard"))
     product.status = "blocked" if product.status == "active" else "active"
     db.session.commit()
     flash(f"상품 '{product.name}' 상태가 변경되었습니다.", "success")

@@ -93,6 +93,10 @@ def edit_product(product_id):
     # 소유자 검증: 다른 사람 상품을 수정할 수 없도록 함 (IDOR 방지)
     if product.seller_id != current_user.id:
         abort(403)
+    # 이미 판매완료된 상품은 사후에 가격/설명을 바꿀 수 없도록 차단 (거래 신뢰성 보호)
+    if product.status == "sold":
+        flash("판매완료된 상품은 수정할 수 없습니다.", "error")
+        return redirect(url_for("products.product_detail", product_id=product.id))
 
     form = ProductForm(obj=product)
     if form.validate_on_submit():

@@ -38,6 +38,10 @@
 {% for r in reports %}
   <div class="card">
     [{{ r.target_type }}#{{ r.target_id }}] {{ r.reason }} (신고자 id: {{ r.reporter_id }})
+    <form class="inline" method="post" action="{{ url_for('admin.delete_report', report_id=r.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">처리완료(삭제)</button>
+    </form>
   </div>
 {% endfor %}
 {% endblock %}
