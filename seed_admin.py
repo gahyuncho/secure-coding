@@ -2,6 +2,10 @@
 사용법: python seed_admin.py <username> <password>
 """
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from app import create_app
 from app.extensions import db
 from app.models import User

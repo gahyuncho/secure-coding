@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # .env 파일의 환경변수(SECRET_KEY 등)를 실제로 불러옴
+
 from app import create_app
 from app.extensions import socketio
 
