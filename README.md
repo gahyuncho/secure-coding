@@ -16,28 +16,41 @@ WHS 4기 Secure Coding 과제 — 간단한 중고거래 플랫폼 (Flask 기반
 
 ```bash
 # 1. 저장소 클론
-git clone https://github.com/<your-id>/secure-coding
+git clone https://github.com/gahyuncho/secure-coding
 cd secure-coding
 
-# 2. 가상환경 생성 (miniconda 예시)
-conda create -n secure-coding python=3.11 -y
-conda activate secure-coding
+# 2. (최초 1회) python3-venv 설치가 안 되어 있다면
+sudo apt update
+sudo apt install python3.12-venv -y
 
-# 3. 의존성 설치
+# 3. 가상환경 생성 및 활성화
+python3 -m venv venv
+source venv/bin/activate
+
+# 4. 의존성 설치
 pip install -r requirements.txt
 
-# 4. 환경변수 설정
+# 5. 환경변수 설정
 cp .env.example .env
-# .env 파일에서 SECRET_KEY를 무작위 값으로 변경할 것
+# .env 파일의 SECRET_KEY를 아래 명령어로 생성한 무작위 값으로 반드시 교체할 것
+python3 -c "import secrets; print(secrets.token_hex(32))"
 
-# 5. (최초 1회) 관리자 계정 생성
+# 6. (최초 1회) 관리자 계정 생성
 python seed_admin.py admin <admin-password>
 
-# 6. 서버 실행
+# 7. 서버 실행
 python run.py
 ```
 
 서버 실행 후 http://127.0.0.1:5000 접속.
+
+다음 실행부터는 3~4번(venv 생성, 설치) 없이 아래 두 줄이면 됩니다:
+```bash
+source venv/bin/activate
+python run.py
+```
+
+> **주의**: Windows에서 WSL을 쓰는 경우, 프로젝트 폴더를 `/mnt/c/...`나 `/mnt/d/...` 같은 Windows 드라이브 경로가 아니라 **WSL 리눅스 홈 디렉토리(`~`) 안에 두고** 작업해야 합니다. Windows 드라이브 위에서는 `python3 -m venv`가 심볼릭 링크 문제로 정상 동작하지 않을 수 있습니다.
 
 ## 프로젝트 구조
 
