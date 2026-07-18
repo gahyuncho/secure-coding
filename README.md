@@ -68,17 +68,27 @@ secure-coding/
 | SQL Injection | 전 구간 SQLAlchemy ORM 사용, raw query 미사용, 검색어도 파라미터 바인딩 |
 | XSS | Jinja2 auto-escape 신뢰, 클라이언트 채팅 렌더링은 `innerText`/`textContent`만 사용해 `innerHTML` 삽입 금지 |
 | CSRF | Flask-WTF CSRF 토큰 전체 폼/AJAX 요청에 적용 |
-| 무차별 대입 공격 | 로그인/송금/신고 라우트에 Flask-Limiter로 rate limit 적용 |
-| 송금 무결성 | 잔액 재조회 후 검증, DB 트랜잭션으로 원자적 처리 |
+| 무차별 대입 공격 | 로그인/회원가입/송금/신고/구매 라우트에 Flask-Limiter로 rate limit 적용 |
+| 송금 무결성 | 송금자·수신자 양쪽 row lock(`with_for_update`)으로 잔액 재조회 후 검증, 트랜잭션으로 원자적 처리 (동시 요청으로 인한 이중 송금 방지) |
 | 구매 무결성 | `SELECT ... FOR UPDATE`로 상품/잔액 재조회 후 검증, 이미 판매된 상품 재구매·본인 상품 구매 차단, 실패 시 rollback |
 | 신고 남용 방지 | 동일 대상 중복 신고 차단, 자기 자신/자기 상품 신고 차단 |
 | 정보 노출 | 로그인 실패 시 아이디 존재 여부를 구분하지 않는 동일 에러 메시지 |
 | 실시간 채팅 인증 | 미인증 소켓 연결은 즉시 종료 (`disconnect()`) |
+| 채팅 도배 방지 | 유저별 최소 전송 간격(0.5초) 제한 |
+| 계정 탈취 대응 | 비밀번호 변경 시 현재 비밀번호 재확인 필수 |
+| 이미지 URL XSS 방지 | `javascript:`/`data:` 등 위험 스킴 차단, http/https만 허용 |
+| 회원가입 경쟁 조건 | 동시 가입 요청으로 인한 DB unique 제약 위반(IntegrityError)을 안전하게 처리 |
+| SECRET_KEY 관리 | 소스코드에 고정 기본값을 두지 않고, 미설정 시 프로세스별 랜덤 키 생성 + 경고 (public 저장소 노출 대응) |
 
 > 상세 보안 점검 항목 및 발견/수정 내역은 별도 보고서(PDF)에 기술.
 
-## TODO / 남은 작업
+## 테스트
 
-- [ ] 실제 테스트 케이스 작성 및 체크리스트 점검
-- [ ] 배포 시 `SESSION_COOKIE_SECURE=true`, HTTPS 적용
-- [ ] SocketIO `cors_allowed_origins` 운영 도메인으로 제한
+기능별 시나리오(회원가입→로그인→상품등록→검색→구매→신고→송금→관리자 관리 등)를 Flask test client로 자동화 테스트하여 검증. 상세 체크리스트는 보고서 5장 참고.
+
+## 알려진 한계 (배포 시 반영 필요)
+
+- 로컬 개발 환경 기준으로 작성되어 `SESSION_COOKIE_SECURE=false` 상태 — 실제 배포 시 HTTPS 환경에서 `true`로 변경 필요
+- SocketIO `cors_allowed_origins`가 현재 빈 리스트(모든 크로스오리진 차단) — 운영 도메인이 정해지면 해당 도메인으로 명시적 설정 필요
+- Rate limit이 IP 기준이라 분산된 다중 IP 공격에는 완전한 방어가 아님 (계정 단위 잠금 미구현)
+- 비밀번호 정책은 길이(8자 이상)만 검증, 복잡도 요구사항 없음
