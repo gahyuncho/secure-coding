@@ -1,11 +1,24 @@
 import os
+import secrets
+import warnings
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+_env_secret_key = os.environ.get("SECRET_KEY")
+if not _env_secret_key:
+    # 공개 저장소에 고정된 기본값을 커밋해두면 세션/CSRF 토큰이 위조 가능해지므로,
+    # 미설정 시 매 프로세스 시작마다 임의의 키를 생성한다 (재시작 시 기존 세션은 무효화됨).
+    # 운영 배포에서는 반드시 SECRET_KEY를 환경변수로 고정 설정할 것.
+    _env_secret_key = secrets.token_hex(32)
+    warnings.warn(
+        "SECRET_KEY 환경변수가 설정되지 않아 임시 키를 생성했습니다. "
+        "재시작 시 모든 세션이 무효화됩니다. .env에 SECRET_KEY를 반드시 설정하세요.",
+        RuntimeWarning,
+    )
+
 
 class Config:
-    # SECRET_KEY는 반드시 환경변수로 주입할 것. 기본값은 로컬 개발용 fallback.
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
+    SECRET_KEY = _env_secret_key
 
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'app.db')}"
