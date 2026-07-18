@@ -16,7 +16,7 @@ transfer_bp = Blueprint("transfer", __name__, url_prefix="/transfer")
 def transfer():
     form = TransferForm()
     if form.validate_on_submit():
-        receiver = User.query.filter_by(username=form.receiver_username.data).first()
+        receiver = db.session.query(User).filter_by(username=form.receiver_username.data).with_for_update().first()
         amount = form.amount.data
 
         if receiver is None:
@@ -27,8 +27,8 @@ def transfer():
             flash("본인에게는 송금할 수 없습니다.", "error")
             return render_template("transfer.html", form=form)
 
-        # DB 레벨에서 한 번 더 최신 잔액을 조회하여 race condition에 의한 이중 송금 최소화
-        sender = db.session.get(User, current_user.id)
+        # row lock으로 최신 잔액을 재조회하여, 동시 요청으로 인한 이중 송금(경쟁 조건)을 방지
+        sender = db.session.query(User).filter_by(id=current_user.id).with_for_update().first()
         if sender.balance < amount:
             flash("잔액이 부족합니다.", "error")
             return render_template("transfer.html", form=form)

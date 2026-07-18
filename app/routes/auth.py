@@ -9,6 +9,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute")  # 봇을 이용한 대량 계정 생성(가입 지급 잔액 어뷰징 등) 방지
 def register():
     if current_user.is_authenticated:
         return redirect(url_for("products.list_products"))
