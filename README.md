@@ -75,15 +75,14 @@ secure-coding/
 
 | 항목 | 조치 |
 |---|---|
-| 비밀번호 저장 | werkzeug `generate_password_hash` 사용 (설치된 버전 기본 알고리즘 적용), 평문 저장 금지 |
+| 비밀번호 저장 | werkzeug `generate_password_hash` 사용 (설치된 Werkzeug 버전의 기본 알고리즘 적용, 특정 알고리즘 하드코딩하지 않음), 평문 저장 금지 |
 | 인증 | Flask-Login 세션 기반, HttpOnly/SameSite 쿠키, `session_protection="strong"` |
 | 인가(IDOR) | 상품 수정/삭제 시 소유자 검증, 관리자 라우트는 `admin_required` 데코레이터로 role 체크 |
 | SQL Injection | 전 구간 SQLAlchemy ORM 사용, raw query 미사용, 검색어도 파라미터 바인딩 |
 | XSS | Jinja2 auto-escape 신뢰, 클라이언트 채팅 렌더링은 `innerText`/`textContent`만 사용해 `innerHTML` 삽입 금지 |
 | CSRF | Flask-WTF CSRF 토큰 전체 폼/AJAX 요청에 적용 |
 | 무차별 대입 공격 | 로그인/회원가입/송금/신고/구매 라우트에 Flask-Limiter로 rate limit 적용 |
-| 송금 무결성 | 송금자·수신자 양쪽 row lock(`with_for_update`)으로 잔액 재조회 후 검증, 트랜잭션으로 원자적 처리 (동시 요청으로 인한 이중 송금 방지) |
-| 구매 무결성 | `SELECT ... FOR UPDATE`로 상품/잔액 재조회 후 검증, 이미 판매된 상품 재구매·본인 상품 구매 차단, 실패 시 rollback |
+| 송금·구매 처리 | 송금·구매 로직을 하나의 DB 트랜잭션으로 처리하고, 처리 직전 잔액·상품 상태를 재검증. `with_for_update()`를 사용하지만 **개발 DB(SQLite)는 행 단위 잠금(SELECT FOR UPDATE)을 지원하지 않아 실질적인 잠금으로 동작하지 않음** — 완전한 해결에는 PostgreSQL 등으로의 전환이 필요함 (보고서 3.4절, 6장 참고) |
 | 신고 남용 방지 | 동일 대상 중복 신고 차단, 자기 자신/자기 상품 신고 차단 |
 | 정보 노출 | 로그인 실패 시 아이디 존재 여부를 구분하지 않는 동일 에러 메시지 |
 | 실시간 채팅 인증 | 미인증 소켓 연결은 즉시 종료 (`disconnect()`) |
@@ -92,7 +91,8 @@ secure-coding/
 | 이미지 URL XSS 방지 | `javascript:`/`data:` 등 위험 스킴 차단, http/https만 허용 |
 | 회원가입 경쟁 조건 | 동시 가입 요청으로 인한 DB unique 제약 위반(IntegrityError)을 안전하게 처리 |
 | SECRET_KEY 관리 | 소스코드에 고정 기본값을 두지 않고, 미설정 시 프로세스별 랜덤 키 생성 + 경고 (public 저장소 노출 대응) |
-| 판매완료 상품 보호 | 판매완료(sold) 상품은 판매자가 수정할 수 없고, 관리자 차단 토글도 sold 상태는 건드리지 않도록 제외 |
+| 판매완료 상품 보호 | 판매완료(sold) 상품은 판매자가 수정·삭제할 수 없고(관리자 예외), 관리자 차단 토글도 제외, 신고 누적으로도 상태가 바뀌지 않도록 처리 |
+| 휴면 계정 제약 | 휴면(suspended) 상태에서는 송금·구매·상품등록뿐 아니라 신고·상품삭제도 차단 (`active_required`) |
 | 로그아웃 상태 변경 | GET이 아닌 POST + CSRF 토큰 필요하도록 변경 (제3자 사이트에서 강제 로그아웃 유도 방지) |
 
 > 상세 보안 점검 항목 및 발견/수정 내역은 별도 보고서(PDF)에 기술.
@@ -106,7 +106,7 @@ pip install pytest  # requirements.txt에 포함되어 있음
 python -m pytest -q
 ```
 
-회원가입 중복 방지, IDOR, XSS 이미지 URL 차단, 잔액 초과 송금 거부, 판매완료 상품 재구매 거부, 관리자 권한 검증, CSRF 검증, 중복 신고 방지 등 8개 시나리오를 검증합니다. 상세 내용은 보고서 5장 참고.
+회원가입 중복 방지, IDOR, XSS 이미지 URL 차단, 잔액 초과 송금 거부, 판매완료 상품 재구매/수정/삭제 거부, 관리자 권한 검증, CSRF 검증, 중복 신고 방지, 짧은 비밀번호 거부, 판매완료 상품 신고차단 방지, 휴면 유저 제약 등 14개 시나리오를 검증합니다 (`14 passed`). 상세 내용은 보고서 5장 참고.
 
 ## 알려진 한계 (배포 시 반영 필요)
 

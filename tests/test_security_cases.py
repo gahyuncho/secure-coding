@@ -202,3 +202,67 @@ def test_tc08_duplicate_report_rejected(client, app):
         f"/report/product/{pid}", data={"reason": "두 번째 신고 사유입니다"}, follow_redirects=True
     )
     assert "이미 신고한 대상입니다" in resp.get_data(as_text=True)
+
+
+def test_tc12_sold_product_not_blocked_by_report_threshold(client, app):
+    """TC-12: 판매완료 상품은 신고가 누적돼도 blocked로 바뀌면 안 됨"""
+    seller = register_and_login(client, "soldseller3")
+    with app.app_context():
+        seller_id = User.query.filter_by(username="soldseller3").first().id
+        p = Product(name="팔린상품3", price=100, seller_id=seller_id, status="sold", report_count=4)
+        db.session.add(p)
+        db.session.commit()
+        pid = p.id
+
+    reporter = app.test_client()
+    register_and_login(reporter, "reporter2")
+    reporter.post(f"/report/product/{pid}", data={"reason": "신고 사유 5글자 이상"}, follow_redirects=True)
+
+    with app.app_context():
+        product = db.session.get(Product, pid)
+        assert product.report_count == 5  # 신고 카운트는 계속 올라가지만
+        assert product.status == "sold"  # 상태는 blocked로 바뀌면 안 됨
+
+
+def test_tc13_sold_product_cannot_be_deleted_by_seller(client, app):
+    """TC-13: 판매완료 상품은 판매자가 삭제할 수 없어야 함 (구매 내역 보존)"""
+    register_and_login(client, "soldseller4")
+    with app.app_context():
+        seller_id = User.query.filter_by(username="soldseller4").first().id
+        p = Product(name="팔린상품4", price=100, seller_id=seller_id, status="sold")
+        db.session.add(p)
+        db.session.commit()
+        pid = p.id
+
+    client.post(f"/products/{pid}/delete", follow_redirects=True)
+    with app.app_context():
+        assert db.session.get(Product, pid) is not None  # 삭제되지 않았어야 함
+
+
+def test_tc14_suspended_user_cannot_report_or_delete(client, app):
+    """TC-14: 휴면 처리된 유저는 신고/상품삭제도 할 수 없어야 함"""
+    register_and_login(client, "suspendeduser")
+    with app.app_context():
+        u = User.query.filter_by(username="suspendeduser").first()
+        u.status = "suspended"
+        p = Product(name="휴면유저상품", price=100, seller_id=u.id)
+        db.session.add(p)
+        db.session.commit()
+        pid = p.id
+
+    other = app.test_client()
+    register_and_login(other, "othertarget")
+    with app.app_context():
+        other_id = User.query.filter_by(username="othertarget").first().id
+
+    # 휴면 유저가 다른 유저를 신고 시도 → 차단(403)돼야 함
+    resp = client.post(
+        f"/report/user/{other_id}", data={"reason": "휴면 상태 신고 시도"}, follow_redirects=False
+    )
+    assert resp.status_code == 403
+
+    # 휴면 유저가 본인 상품 삭제 시도 → 차단(403)돼야 함
+    resp2 = client.post(f"/products/{pid}/delete", follow_redirects=False)
+    assert resp2.status_code == 403
+    with app.app_context():
+        assert db.session.get(Product, pid) is not None

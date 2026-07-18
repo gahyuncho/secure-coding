@@ -4,12 +4,14 @@ from flask_login import login_required, current_user
 from app.extensions import db, limiter
 from app.forms import ReportForm
 from app.models import Report, Product, User
+from app.utils import active_required
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/report")
 
 
 @reports_bp.route("/<target_type>/<int:target_id>", methods=["GET", "POST"])
 @login_required
+@active_required
 @limiter.limit("20 per hour")  # 신고 남용/도배 방지
 def create_report(target_type, target_id):
     if target_type not in ("user", "product"):
@@ -49,11 +51,13 @@ def create_report(target_type, target_id):
         threshold = current_app.config["REPORT_THRESHOLD"]
         if target_type == "product":
             target.report_count += 1
-            if target.report_count >= threshold:
+            # active 상태인 상품만 차단 대상으로 함 — 이미 판매완료(sold)된 상품이
+            # 신고 누적만으로 blocked 처리되어 구매자가 상세페이지에 접근 못하게 되는 문제 방지
+            if target.report_count >= threshold and target.status == "active":
                 target.status = "blocked"
         else:
             target.report_count += 1
-            if target.report_count >= threshold:
+            if target.report_count >= threshold and target.status == "active":
                 target.status = "suspended"
 
         db.session.commit()

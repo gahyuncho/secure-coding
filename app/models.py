@@ -23,7 +23,7 @@ class User(UserMixin, db.Model):
     )
 
     def set_password(self, raw_password: str) -> None:
-        # werkzeug의 pbkdf2:sha256 사용. 평문 비밀번호는 절대 저장하지 않음.
+        # werkzeug generate_password_hash 사용 (설치된 버전의 기본 알고리즘 적용). 평문 비밀번호는 절대 저장하지 않음.
         self.password_hash = generate_password_hash(raw_password)
 
     def check_password(self, raw_password: str) -> bool:

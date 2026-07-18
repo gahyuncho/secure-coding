@@ -161,12 +161,17 @@ def buy_product(product_id):
 
 @products_bp.route("/<int:product_id>/delete", methods=["POST"])
 @login_required
+@active_required
 def delete_product(product_id):
     product = db.session.get(Product, product_id)
     if product is None:
         abort(404)
     if product.seller_id != current_user.id and not current_user.is_admin:
         abort(403)
+    # 판매완료된 상품은 구매자의 거래 내역(구매한 상품 목록) 보존을 위해 삭제 금지 (관리자는 예외)
+    if product.status == "sold" and not current_user.is_admin:
+        flash("판매완료된 상품은 삭제할 수 없습니다.", "error")
+        return redirect(url_for("products.my_products"))
 
     db.session.delete(product)
     db.session.commit()
