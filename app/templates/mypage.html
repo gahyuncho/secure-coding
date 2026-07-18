@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>마이페이지</h2>
+<p>아이디: {{ user.username }} | 잔액: {{ user.balance }}원</p>
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.bio.label }}<br>{{ form.bio(rows=4, cols=50) }}</p>
+  <p>{{ form.current_password.label }}<br>{{ form.current_password(size=32) }}</p>
+  <p>{{ form.new_password.label }}<br>{{ form.new_password(size=32) }}</p>
+  {{ form.submit() }}
+</form>
+{% endblock %}

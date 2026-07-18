@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Tiny Second-hand Shopping{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 16px; }
+    nav a { margin-right: 12px; }
+    .flash { padding: 8px; margin: 8px 0; border-radius: 4px; }
+    .flash.success { background: #e6ffed; }
+    .flash.error { background: #ffe6e6; }
+    .card { border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+    form.inline { display: inline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('products.list_products') }}">상품 목록</a>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('products.new_product') }}">상품 등록</a>
+      <a href="{{ url_for('products.my_products') }}">내 상품</a>
+      <a href="{{ url_for('products.purchased_products') }}">구매한 상품</a>
+      <a href="{{ url_for('chat.global_chat') }}">전체 채팅</a>
+      <a href="{{ url_for('transfer.transfer') }}">송금</a>
+      <a href="{{ url_for('auth.mypage') }}">마이페이지</a>
+      {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.dashboard') }}">관리자</a>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}">로그아웃 ({{ current_user.username }})</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}">로그인</a>
+      <a href="{{ url_for('auth.register') }}">회원가입</a>
+    {% endif %}
+  </nav>
+  <hr>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>

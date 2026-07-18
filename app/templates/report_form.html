@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>신고하기</h2>
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.reason.label }}<br>{{ form.reason(rows=4, cols=50) }}
+    {% for e in form.reason.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  {{ form.submit() }}
+</form>
+{% endblock %}

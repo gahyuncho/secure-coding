@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>상품 목록</h2>
+<form method="get">
+  <input type="text" name="q" value="{{ q }}" placeholder="상품명 검색">
+  <button type="submit">검색</button>
+</form>
+
+{% for p in products %}
+  <div class="card">
+    {% if p.image_url %}
+      <img src="{{ p.image_url }}" alt="" style="max-width:80px; max-height:80px; vertical-align:middle;">
+    {% endif %}
+    <a href="{{ url_for('products.product_detail', product_id=p.id) }}"><strong>{{ p.name }}</strong></a>
+    - {{ p.price }}원
+  </div>
+{% else %}
+  <p>등록된 상품이 없습니다.</p>
+{% endfor %}
+{% endblock %}

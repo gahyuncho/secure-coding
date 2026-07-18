@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>송금</h2>
+<p>내 잔액: {{ current_user.balance }}원</p>
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.receiver_username.label }}<br>{{ form.receiver_username(size=32) }}</p>
+  <p>{{ form.amount.label }}<br>{{ form.amount() }}</p>
+  {{ form.submit() }}
+</form>
+
+<h3>송금 내역</h3>
+{% for t in history %}
+  <div class="card">
+    {{ t.created_at }} |
+    {% if t.sender_id == current_user.id %}
+      보냄 → {{ t.receiver.username }} : {{ t.amount }}원
+    {% else %}
+      받음 ← {{ t.sender.username }} : {{ t.amount }}원
+    {% endif %}
+  </div>
+{% else %}
+  <p>내역이 없습니다.</p>
+{% endfor %}
+{% endblock %}

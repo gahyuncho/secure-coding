@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>회원가입</h2>
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.username.label }}<br>{{ form.username(size=32) }}
+    {% for e in form.username.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  <p>{{ form.password.label }}<br>{{ form.password(size=32) }}
+    {% for e in form.password.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  <p>{{ form.confirm.label }}<br>{{ form.confirm(size=32) }}
+    {% for e in form.confirm.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  {{ form.submit() }}
+</form>
+{% endblock %}

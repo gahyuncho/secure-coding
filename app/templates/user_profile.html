@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ profile_user.username }}</h2>
+<p>{{ profile_user.bio or '소개글이 없습니다.' }}</p>
+
+{% if current_user.id != profile_user.id %}
+  <a href="{{ url_for('chat.direct_chat', username=profile_user.username) }}">1:1 채팅</a>
+  |
+  <a href="{{ url_for('transfer.transfer') }}">송금하기</a>
+  |
+  <a href="{{ url_for('reports.create_report', target_type='user', target_id=profile_user.id) }}">유저 신고</a>
+{% endif %}
+
+<h3>판매 중인 상품</h3>
+{% for p in products %}
+  <div class="card">
+    <a href="{{ url_for('products.product_detail', product_id=p.id) }}">{{ p.name }}</a> - {{ p.price }}원
+  </div>
+{% else %}
+  <p>판매 중인 상품이 없습니다.</p>
+{% endfor %}
+{% endblock %}

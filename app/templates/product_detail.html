@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ product.name }}</h2>
+{% if product.image_url %}
+  <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-width:300px; max-height:300px;">
+{% endif %}
+<p>가격: {{ product.price }}원</p>
+<p>{{ product.description }}</p>
+<p>판매자: <a href="{{ url_for('auth.view_user', username=product.seller.username) }}">{{ product.seller.username }}</a></p>
+{% if product.status == 'blocked' %}<p><strong>[차단된 상품]</strong></p>{% endif %}
+{% if product.status == 'sold' %}<p><strong>[판매완료]</strong></p>{% endif %}
+
+{% if current_user.is_authenticated %}
+  {% if current_user.id != product.seller_id %}
+    <a href="{{ url_for('chat.direct_chat', username=product.seller.username) }}">판매자와 채팅</a>
+    |
+    <a href="{{ url_for('reports.create_report', target_type='product', target_id=product.id) }}">상품 신고</a>
+    {% if product.status == 'active' %}
+      <form method="post" action="{{ url_for('products.buy_product', product_id=product.id) }}"
+            onsubmit="return confirm('{{ product.price }}원에 구매하시겠습니까?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">구매하기</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endif %}
+{% endblock %}

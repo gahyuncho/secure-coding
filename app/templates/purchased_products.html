@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>구매한 상품</h2>
+{% for p in products %}
+  <div class="card">
+    <a href="{{ url_for('products.product_detail', product_id=p.id) }}"><strong>{{ p.name }}</strong></a>
+    - {{ p.price }}원 (판매자: {{ p.seller.username }})
+  </div>
+{% else %}
+  <p>구매한 상품이 없습니다.</p>
+{% endfor %}
+{% endblock %}

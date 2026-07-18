@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>관리자 대시보드</h2>
+
+<h3>유저 관리</h3>
+{% for u in users %}
+  <div class="card">
+    {{ u.username }} [{{ u.role }}/{{ u.status }}] 잔액 {{ u.balance }}원 · 신고 {{ u.report_count }}회
+    <form class="inline" method="post" action="{{ url_for('admin.toggle_suspend_user', user_id=u.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">{{ '휴면 해제' if u.status == 'suspended' else '휴면 처리' }}</button>
+    </form>
+    <form class="inline" method="post" action="{{ url_for('admin.charge_balance', user_id=u.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="number" name="amount" placeholder="충전액" min="1" style="width:80px;">
+      <button type="submit">충전</button>
+    </form>
+  </div>
+{% endfor %}
+
+<h3>상품 관리</h3>
+{% for p in products %}
+  <div class="card">
+    {{ p.name }} [{{ p.status }}] 신고 {{ p.report_count }}회
+    <form class="inline" method="post" action="{{ url_for('admin.toggle_block_product', product_id=p.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">{{ '차단 해제' if p.status == 'blocked' else '차단' }}</button>
+    </form>
+    <form class="inline" method="post" action="{{ url_for('admin.delete_product', product_id=p.id) }}"
+          onsubmit="return confirm('삭제하시겠습니까?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">삭제</button>
+    </form>
+  </div>
+{% endfor %}
+
+<h3>최근 신고 내역</h3>
+{% for r in reports %}
+  <div class="card">
+    [{{ r.target_type }}#{{ r.target_id }}] {{ r.reason }} (신고자 id: {{ r.reporter_id }})
+  </div>
+{% endfor %}
+{% endblock %}

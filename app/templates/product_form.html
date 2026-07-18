@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ '상품 등록' if mode == 'new' else '상품 수정' }}</h2>
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <p>{{ form.name.label }}<br>{{ form.name(size=40) }}
+    {% for e in form.name.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  <p>{{ form.description.label }}<br>{{ form.description(rows=4, cols=50) }}</p>
+  <p>{{ form.price.label }}<br>{{ form.price() }}
+    {% for e in form.price.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  <p>{{ form.image_url.label }}<br>{{ form.image_url(size=50) }}
+    {% for e in form.image_url.errors %}<br><small>{{ e }}</small>{% endfor %}</p>
+  {{ form.submit() }}
+</form>
+{% endblock %}
